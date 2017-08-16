@@ -4,3 +4,7 @@ express ./elastic
 cd elastic
 
 npm install  
+
+// Setup elasticsearch
+
+npm install elasticsearch --save  

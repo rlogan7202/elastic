@@ -7,6 +7,7 @@ var bodyParser = require('body-parser');
 
 var index = require('./routes/index');
 var users = require('./routes/users');
+var documents = require('./routes/documents');  
 
 var app = express();
 
@@ -24,6 +25,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', index);
 app.use('/users', users);
+app.use('/documents', documents);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -43,4 +45,31 @@ app.use(function(err, req, res, next) {
   res.render('error');
 });
 
+var elastic = require('./elasticsearch');  
+elastic.indexExists().then(function (exists) {  
+  if (exists) {
+    return elastic.deleteIndex();
+  }
+}).then(function () {
+  return elastic.initIndex().then(elastic.initMapping).then(function () {
+    //Add a few titles for the autocomplete
+    //elasticsearch offers a bulk functionality as well, but this is for a different time
+    var promises = [
+      'Thing Explainer',
+      'The Internet Is a Playground',
+      'The Pragmatic Programmer',
+      'The Hitchhikers Guide to the Galaxy',
+      'Trial of the Clone'
+    ].map(function (bookTitle) {
+      return elastic.addDocument({
+        title: bookTitle,
+        content: bookTitle + " content",
+        metadata: {
+          titleLength: bookTitle.length
+        }
+      });
+    });
+    return Promise.all(promises);
+  });
+});
 module.exports = app;
